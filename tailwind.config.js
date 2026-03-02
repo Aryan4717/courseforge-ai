@@ -7,6 +7,24 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          'sans-serif',
+          '"Apple Color Emoji"',
+          '"Segoe UI Emoji"',
+          '"Segoe UI Symbol"',
+        ],
+      },
+      fontSize: {
+        'heading-lg': ['1.875rem', { lineHeight: '2.25rem', fontWeight: '600' }],
+        'heading': ['1.5rem', { lineHeight: '2rem', fontWeight: '600' }],
+        'subheading': ['1.125rem', { lineHeight: '1.75rem', fontWeight: '500' }],
+        'body': ['1rem', { lineHeight: '1.5rem' }],
+        'body-sm': ['0.875rem', { lineHeight: '1.25rem' }],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
