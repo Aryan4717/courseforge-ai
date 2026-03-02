@@ -24,6 +24,9 @@ export function Header() {
             {user ? (
               <>
                 <Button variant="ghost" size="sm" asChild>
+                  <Link to="/library">My Library</Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
                   <Link to="/onboarding">Create course</Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>

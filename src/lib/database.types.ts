@@ -34,5 +34,7 @@ export type CourseInsert = Pick<Course, 'title' | 'description' | 'level'>
 /** Payload for creating a section (id from DB) */
 export type CourseSectionInsert = Pick<CourseSection, 'course_id' | 'title' | 'order'>
 
-/** Payload for creating an asset (id from DB) */
 export type CourseAssetInsert = Pick<CourseAsset, 'section_id' | 'name' | 'type' | 'url'>
+
+/** Payload for recording a purchase (id and created_at from DB) */
+export type PurchaseInsert = Pick<Purchase, 'user_id' | 'course_id'>
