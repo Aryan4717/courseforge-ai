@@ -6,6 +6,7 @@ import type {
   CourseSectionInsert,
   CourseAsset,
   CourseAssetInsert,
+  Purchase,
 } from '@/lib/database.types'
 
 const COURSE_ASSETS_BUCKET = 'course-assets'
@@ -56,6 +57,62 @@ export async function getCourseById(id: string): Promise<Course | null> {
   }
 
   return data as Course | null
+}
+
+export type PurchaseWithCourse = Purchase & { courses: Course | null }
+
+export async function getPurchasesWithCourses(
+  userId: string
+): Promise<Course[]> {
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*, courses(*)')
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('getPurchasesWithCourses error:', error)
+    throw error
+  }
+
+  const rows = (data ?? []) as PurchaseWithCourse[]
+  return rows
+    .map((r) => r.courses)
+    .filter((c): c is Course => c != null)
+}
+
+export async function getSectionsByCourseId(
+  courseId: string
+): Promise<CourseSection[]> {
+  const { data, error } = await supabase
+    .from('course_sections')
+    .select('*')
+    .eq('course_id', courseId)
+    .order('order', { ascending: true })
+
+  if (error) {
+    console.error('getSectionsByCourseId error:', error)
+    throw error
+  }
+
+  return (data ?? []) as CourseSection[]
+}
+
+export async function getAssetsBySectionId(
+  sectionId: string
+): Promise<CourseAsset[]> {
+  const { data, error } = await supabase
+    .from('course_assets')
+    .select('*')
+    .eq('section_id', sectionId)
+
+  if (error) {
+    console.error('getAssetsBySectionId error:', error)
+    throw error
+  }
+
+  return ((data ?? []) as CourseAsset[]).sort((a, b) =>
+    a.id.localeCompare(b.id)
+  )
 }
 
 export async function createSection(
