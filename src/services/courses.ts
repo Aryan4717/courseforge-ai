@@ -58,6 +58,41 @@ export async function getCourseById(id: string): Promise<Course | null> {
   return data as Course | null
 }
 
+export async function getSectionsByCourseId(
+  courseId: string
+): Promise<CourseSection[]> {
+  const { data, error } = await supabase
+    .from('course_sections')
+    .select('*')
+    .eq('course_id', courseId)
+    .order('order', { ascending: true })
+
+  if (error) {
+    console.error('getSectionsByCourseId error:', error)
+    throw error
+  }
+
+  return (data ?? []) as CourseSection[]
+}
+
+export async function getAssetsBySectionId(
+  sectionId: string
+): Promise<CourseAsset[]> {
+  const { data, error } = await supabase
+    .from('course_assets')
+    .select('*')
+    .eq('section_id', sectionId)
+
+  if (error) {
+    console.error('getAssetsBySectionId error:', error)
+    throw error
+  }
+
+  return ((data ?? []) as CourseAsset[]).sort((a, b) =>
+    a.id.localeCompare(b.id)
+  )
+}
+
 export async function createSection(
   data: CourseSectionInsert
 ): Promise<CourseSection | null> {
