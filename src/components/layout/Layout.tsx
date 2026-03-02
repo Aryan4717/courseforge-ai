@@ -1,17 +1,15 @@
-import { type ReactNode } from 'react'
+import { Outlet } from 'react-router-dom'
 import { Header } from '@/components/layout/Header'
 import { PageContainer } from '@/components/layout/PageContainer'
 
-type LayoutProps = {
-  children: ReactNode
-}
-
-export function Layout({ children }: LayoutProps) {
+export function Layout() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
-        <PageContainer>{children}</PageContainer>
+        <PageContainer>
+          <Outlet />
+        </PageContainer>
       </main>
     </div>
   )
