@@ -30,3 +30,9 @@ export interface Purchase {
 
 /** Payload for creating a course (id and created_at from DB) */
 export type CourseInsert = Pick<Course, 'title' | 'description' | 'level'>
+
+/** Payload for creating a section (id from DB) */
+export type CourseSectionInsert = Pick<CourseSection, 'course_id' | 'title' | 'order'>
+
+/** Payload for creating an asset (id from DB) */
+export type CourseAssetInsert = Pick<CourseAsset, 'section_id' | 'name' | 'type' | 'url'>
