@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/button'
@@ -77,6 +77,13 @@ export function CourseShare() {
                 {copied ? 'Copied' : 'Copy'}
               </Button>
             </div>
+            {id && (
+              <p className="text-body-sm text-muted-foreground">
+                <Button variant="secondary" size="sm" asChild>
+                  <Link to={`/course/${id}`}>Open course</Link>
+                </Button>
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
