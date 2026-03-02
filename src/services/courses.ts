@@ -6,6 +6,7 @@ import type {
   CourseSectionInsert,
   CourseAsset,
   CourseAssetInsert,
+  Purchase,
 } from '@/lib/database.types'
 
 const COURSE_ASSETS_BUCKET = 'course-assets'
@@ -56,6 +57,27 @@ export async function getCourseById(id: string): Promise<Course | null> {
   }
 
   return data as Course | null
+}
+
+export type PurchaseWithCourse = Purchase & { courses: Course | null }
+
+export async function getPurchasesWithCourses(
+  userId: string
+): Promise<Course[]> {
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*, courses(*)')
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('getPurchasesWithCourses error:', error)
+    throw error
+  }
+
+  const rows = (data ?? []) as PurchaseWithCourse[]
+  return rows
+    .map((r) => r.courses)
+    .filter((c): c is Course => c != null)
 }
 
 export async function getSectionsByCourseId(

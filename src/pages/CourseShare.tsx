@@ -3,14 +3,19 @@ import { useParams, Link } from 'react-router-dom'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/store/authStore'
 import { getCourseById } from '@/services/courses'
+import { createCheckoutSession } from '@/services/checkout'
 
 export function CourseShare() {
   const { id } = useParams<{ id: string }>()
+  const user = useAuthStore((s) => s.user)
   const [courseTitle, setCourseTitle] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [buyLoading, setBuyLoading] = useState(false)
+  const [buyError, setBuyError] = useState<string | null>(null)
 
   const shareableLink =
     typeof window !== 'undefined' && id
@@ -38,6 +43,21 @@ export function CourseShare() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  const handleBuy = async () => {
+    if (!id || !user) return
+    setBuyError(null)
+    setBuyLoading(true)
+    try {
+      const { url } = await createCheckoutSession(id, user.id)
+      if (url) window.location.href = url
+      else setBuyError('Checkout unavailable')
+    } catch (err) {
+      setBuyError(err instanceof Error ? err.message : 'Checkout failed')
+    } finally {
+      setBuyLoading(false)
+    }
   }
 
   if (notFound) {
@@ -83,6 +103,18 @@ export function CourseShare() {
                   <Link to={`/course/${id}`}>Open course</Link>
                 </Button>
               </p>
+            )}
+            {id && user && (
+              <div className="space-y-2">
+                <Button size="sm" onClick={handleBuy} disabled={buyLoading}>
+                  {buyLoading ? 'Loading…' : 'Buy'}
+                </Button>
+                {buyError && (
+                  <p className="text-body-sm text-muted-foreground">
+                    {buyError}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
