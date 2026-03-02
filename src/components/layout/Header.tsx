@@ -23,6 +23,9 @@ export function Header() {
           <nav className="flex items-center gap-2">
             {user ? (
               <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/upload">Upload course</Link>
+                </Button>
                 <span className="text-body-sm text-muted-foreground">
                   {user.email}
                 </span>
