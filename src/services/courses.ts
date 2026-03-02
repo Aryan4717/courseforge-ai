@@ -1,5 +1,14 @@
 import { supabase } from '@/services/supabase'
-import type { Course, CourseInsert } from '@/lib/database.types'
+import type {
+  Course,
+  CourseInsert,
+  CourseSection,
+  CourseSectionInsert,
+  CourseAsset,
+  CourseAssetInsert,
+} from '@/lib/database.types'
+
+const COURSE_ASSETS_BUCKET = 'course-assets'
 
 export async function createCourse(data: CourseInsert): Promise<Course | null> {
   const { data: course, error } = await supabase
@@ -47,4 +56,69 @@ export async function getCourseById(id: string): Promise<Course | null> {
   }
 
   return data as Course | null
+}
+
+export async function createSection(
+  data: CourseSectionInsert
+): Promise<CourseSection | null> {
+  const { data: section, error } = await supabase
+    .from('course_sections')
+    .insert({
+      course_id: data.course_id,
+      title: data.title,
+      order: data.order,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('createSection error:', error)
+    throw error
+  }
+
+  return section as CourseSection
+}
+
+export async function createAsset(
+  data: CourseAssetInsert
+): Promise<CourseAsset | null> {
+  const { data: asset, error } = await supabase
+    .from('course_assets')
+    .insert({
+      section_id: data.section_id,
+      name: data.name,
+      type: data.type,
+      url: data.url,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('createAsset error:', error)
+    throw error
+  }
+
+  return asset as CourseAsset
+}
+
+export async function uploadAssetFile(
+  courseId: string,
+  sectionId: string,
+  fileName: string,
+  blob: Blob
+): Promise<string> {
+  const path = `${courseId}/${sectionId}/${fileName}`
+  const { error } = await supabase.storage
+    .from(COURSE_ASSETS_BUCKET)
+    .upload(path, blob, { upsert: true })
+
+  if (error) {
+    console.error('uploadAssetFile error:', error)
+    throw error
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(COURSE_ASSETS_BUCKET).getPublicUrl(path)
+  return publicUrl
 }
