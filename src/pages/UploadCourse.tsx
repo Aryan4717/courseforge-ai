@@ -85,8 +85,8 @@ export function UploadCourse() {
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
-              className={`rounded-md border-2 border-dashed p-8 text-center transition-colors ${
-                dragOver ? 'border-primary bg-muted/50' : 'border-border bg-muted/30'
+              className={`rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                dragOver ? 'border-primary bg-accent' : 'border-border bg-muted'
               }`}
             >
               <input
