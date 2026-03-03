@@ -6,21 +6,20 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/store/authStore'
 import { getCourseById } from '@/services/courses'
 import { createCheckoutSession } from '@/services/checkout'
+import { getCourseShareUrl } from '@/utils/url'
+import type { Course } from '@/lib/database.types'
 
 export function CourseShare() {
   const { id } = useParams<{ id: string }>()
   const user = useAuthStore((s) => s.user)
-  const [courseTitle, setCourseTitle] = useState<string | null>(null)
+  const [course, setCourse] = useState<Course | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [buyLoading, setBuyLoading] = useState(false)
   const [buyError, setBuyError] = useState<string | null>(null)
 
-  const shareableLink =
-    typeof window !== 'undefined' && id
-      ? `${window.location.origin}/courses/${id}`
-      : ''
+  const shareableLink = id ? getCourseShareUrl(id) : ''
 
   useEffect(() => {
     if (!id) {
@@ -29,8 +28,8 @@ export function CourseShare() {
       return
     }
     getCourseById(id)
-      .then((course) => {
-        if (course) setCourseTitle(course.title)
+      .then((c) => {
+        if (c) setCourse(c)
         else setNotFound(true)
       })
       .catch(() => setNotFound(true))
@@ -79,9 +78,38 @@ export function CourseShare() {
   return (
     <div className="space-y-6">
       <SectionHeader
-        title={courseTitle ?? 'Course'}
+        title={course?.title ?? 'Course'}
         description="Share this link with others to give them access."
       />
+      {course?.overview_audio_url && (
+        <div>
+          <p className="mb-1 text-body-sm font-medium text-foreground">
+            Course overview
+          </p>
+          <audio
+            src={course.overview_audio_url}
+            controls
+            className="w-full max-w-md"
+          />
+        </div>
+      )}
+      {course?.intro_video_status === 'processing' && (
+        <p className="text-body-sm text-muted-foreground">
+          Generating AI intro video...
+        </p>
+      )}
+      {course?.intro_video_status === 'ready' && course?.intro_video_url && (
+        <div>
+          <p className="mb-1 text-body-sm font-medium text-foreground">
+            Intro video
+          </p>
+          <video
+            src={course.intro_video_url}
+            controls
+            className="max-w-2xl rounded-lg border border-border bg-card"
+          />
+        </div>
+      )}
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-4">

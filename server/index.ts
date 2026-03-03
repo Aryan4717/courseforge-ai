@@ -5,10 +5,21 @@ import { startInstrumentation, shutdownInstrumentation } from './instrumentation
 import {
   generateMetadata,
   structureSections,
-  chatInstructor,
-  type ChatMessage,
 } from './llmService.js'
 import { supabaseAdmin } from './supabase.js'
+import { generateCourseAudio } from './elevenlabs.js'
+import {
+  createIntroVideoJob,
+  checkVideoStatus,
+  getVideoUrl,
+} from './colossyan.js'
+import { generateCourseStructure } from './generateCourseStructure.js'
+import { createCourseFromStructure } from './createCourse.js'
+import { updateCourseMetadata } from './updateCourse.js'
+import { ingestZip } from './ingestZip.js'
+import multer from 'multer'
+
+const upload = multer({ storage: multer.memoryStorage() })
 
 startInstrumentation()
 
@@ -75,6 +86,69 @@ app.post(
 )
 
 app.use(express.json())
+
+/** Update course media fields (overview_audio_url, intro_video_url, intro_video_status, intro_video_id). */
+async function updateCourseMedia(
+  courseId: string,
+  updates: {
+    overview_audio_url?: string
+    intro_video_url?: string
+    intro_video_status?: string
+    intro_video_id?: string
+  }
+): Promise<void> {
+  if (!supabaseAdmin) return
+  const { error } = await supabaseAdmin
+    .from('courses')
+    .update(updates)
+    .eq('id', courseId)
+  if (error) console.error('updateCourseMedia error:', error)
+}
+
+/** jobId -> courseId for background Colossyan polling */
+const pendingVideoJobs = new Map<string, string>()
+const POLL_INTERVAL_MS = 12_000
+
+function startVideoPoller(): void {
+  if (pendingVideoJobs.size === 0) return
+  for (const [jobId, courseId] of pendingVideoJobs) {
+    checkVideoStatus(jobId)
+      .then(async ({ status, videoId }) => {
+        if (status === 'finished' && videoId) {
+          try {
+            const url = await getVideoUrl(videoId)
+            await updateCourseMedia(courseId, {
+              intro_video_url: url,
+              intro_video_status: 'ready',
+            })
+          } catch (e) {
+            console.error('getVideoUrl or update failed:', e)
+            await updateCourseMedia(courseId, { intro_video_status: 'failed' })
+          }
+          pendingVideoJobs.delete(jobId)
+        } else if (status === 'failed') {
+          await updateCourseMedia(courseId, { intro_video_status: 'failed' })
+          pendingVideoJobs.delete(jobId)
+        }
+      })
+      .catch((e) => {
+        console.error('checkVideoStatus failed:', e)
+        // keep in map and retry next interval
+      })
+  }
+}
+
+let pollTimer: ReturnType<typeof setInterval> | null = null
+function ensurePollerRunning(): void {
+  if (pollTimer != null) return
+  pollTimer = setInterval(() => {
+    startVideoPoller()
+    if (pendingVideoJobs.size === 0 && pollTimer != null) {
+      clearInterval(pollTimer)
+      pollTimer = null
+    }
+  }, POLL_INTERVAL_MS)
+}
 
 function getFrontendOrigin(req: express.Request): string {
   const fromEnv = process.env.FRONTEND_URL
@@ -148,6 +222,193 @@ app.post('/generate-metadata', async (req, res) => {
   }
 })
 
+app.post('/generate-course-structure', async (req, res) => {
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Service not configured' })
+    return
+  }
+  try {
+    const { topic, level, duration } = req.body as {
+      topic?: string
+      level?: string
+      duration?: string
+    }
+    if (!topic || typeof topic !== 'string') {
+      res.status(400).json({ error: 'Missing or invalid topic' })
+      return
+    }
+    const result = await generateCourseStructure(
+      topic,
+      level ?? 'Beginner',
+      duration ?? '4 weeks'
+    )
+    res.json(result)
+  } catch (err) {
+    console.error('generateCourseStructure error:', err)
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'generateCourseStructure failed',
+    })
+  }
+})
+
+app.post('/create-course', async (req, res) => {
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Service not configured' })
+    return
+  }
+  try {
+    const body = req.body as {
+      title?: string
+      description?: string
+      level?: string | null
+      sections?: { title: string; lessons: string[] }[]
+    }
+    if (!body.title || typeof body.title !== 'string') {
+      res.status(400).json({ error: 'Missing or invalid title' })
+      return
+    }
+    if (!Array.isArray(body.sections)) {
+      res.status(400).json({ error: 'Missing or invalid sections' })
+      return
+    }
+    const { courseId } = await createCourseFromStructure({
+      title: body.title,
+      description: body.description ?? '',
+      level: body.level ?? null,
+      sections: body.sections,
+    })
+    res.json({ courseId })
+  } catch (err) {
+    console.error('createCourse error:', err)
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'createCourse failed',
+    })
+  }
+})
+
+app.post('/ingest-zip', upload.single('file'), async (req, res) => {
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Service not configured' })
+    return
+  }
+  try {
+    const file = (req as express.Request & { file?: Express.Multer.File }).file
+    if (!file || !file.buffer) {
+      res.status(400).json({ error: 'Missing file; send as multipart form field "file"' })
+      return
+    }
+    if (!file.originalname?.toLowerCase().endsWith('.zip')) {
+      res.status(400).json({ error: 'File must be a .zip' })
+      return
+    }
+    const result = await ingestZip(file.buffer)
+    res.json(result)
+  } catch (err) {
+    console.error('ingestZip error:', err)
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'ingestZip failed',
+    })
+  }
+})
+
+app.patch('/update-course/:courseId', async (req, res) => {
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Service not configured' })
+    return
+  }
+  try {
+    const courseId = req.params.courseId
+    const { title, description } = req.body as { title?: string; description?: string }
+    await updateCourseMetadata(courseId, { title, description })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('updateCourse error:', err)
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'updateCourse failed',
+    })
+  }
+})
+
+function buildIntroScript(title: string, description?: string | null): string {
+  return `Welcome to ${title}. ${(description ?? '').trim() || 'Let\'s get started.'}`
+}
+
+app.post('/generate-audio', async (req, res) => {
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Media generation not configured' })
+    return
+  }
+  try {
+    const { courseId, title, description } = req.body as {
+      courseId?: string
+      title?: string
+      description?: string
+    }
+    if (!courseId || typeof courseId !== 'string') {
+      res.status(400).json({ error: 'Missing or invalid courseId' })
+      return
+    }
+    const script = buildIntroScript(title ?? '', description)
+    ;(async () => {
+      try {
+        const url = await generateCourseAudio(script, courseId)
+        await updateCourseMedia(courseId, { overview_audio_url: url })
+      } catch (e) {
+        console.error('generateCourseAudio failed:', e)
+      }
+    })()
+    res.status(202).json({ ok: true, message: 'Audio generation started' })
+  } catch (err) {
+    console.error('generate-audio error:', err)
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'generate-audio failed',
+    })
+  }
+})
+
+app.post('/generate-avatar-video', async (req, res) => {
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Media generation not configured' })
+    return
+  }
+  try {
+    const { courseId, title, description, introScript } = req.body as {
+      courseId?: string
+      title?: string
+      description?: string
+      introScript?: string
+    }
+    if (!courseId || typeof courseId !== 'string') {
+      res.status(400).json({ error: 'Missing or invalid courseId' })
+      return
+    }
+    const script =
+      typeof introScript === 'string' && introScript
+        ? introScript
+        : buildIntroScript(title ?? '', description)
+    ;(async () => {
+      try {
+        const { jobId } = await createIntroVideoJob(script)
+        await updateCourseMedia(courseId, {
+          intro_video_id: jobId,
+          intro_video_status: 'processing',
+        })
+        pendingVideoJobs.set(jobId, courseId)
+        ensurePollerRunning()
+      } catch (e) {
+        console.error('createIntroVideoJob failed:', e)
+        await updateCourseMedia(courseId, { intro_video_status: 'failed' })
+      }
+    })()
+    res.status(202).json({ ok: true, message: 'Avatar video generation started' })
+  } catch (err) {
+    console.error('generate-avatar-video error:', err)
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'generate-avatar-video failed',
+    })
+  }
+})
+
 app.post('/structure-sections', async (req, res) => {
   try {
     const { fileNames } = req.body as { fileNames?: string[] }
@@ -161,23 +422,6 @@ app.post('/structure-sections', async (req, res) => {
     console.error('structureSections error:', err)
     res.status(500).json({
       error: err instanceof Error ? err.message : 'structureSections failed',
-    })
-  }
-})
-
-app.post('/chat-instructor', async (req, res) => {
-  try {
-    const { messages } = req.body as { messages?: ChatMessage[] }
-    if (!Array.isArray(messages)) {
-      res.status(400).json({ error: 'Missing or invalid messages array' })
-      return
-    }
-    const result = await chatInstructor(messages)
-    res.json(result)
-  } catch (err) {
-    console.error('chatInstructor error:', err)
-    res.status(500).json({
-      error: err instanceof Error ? err.message : 'chatInstructor failed',
     })
   }
 })

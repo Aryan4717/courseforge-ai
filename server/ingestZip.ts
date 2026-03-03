@@ -1,13 +1,9 @@
 import JSZip from 'jszip'
-import {
-  createCourse,
-  createSection,
-  createAsset,
-  uploadAssetFile,
-} from '@/services/courses'
-import { supabase } from '@/services/supabase'
+import { supabaseAdmin } from './supabase.js'
+import { validateCourseAssetForInsert } from './createCourse.js'
 
-const BATCH_SIZE = 15
+const BUCKET = 'course-assets'
+const MAX_FILES = 100
 
 const EXTENSION_TO_TYPE: Record<string, string> = {
   mp4: 'video',
@@ -31,24 +27,22 @@ function getTypeFromFileName(fileName: string): string {
   return EXTENSION_TO_TYPE[ext] ?? 'file'
 }
 
-export type ParsedSection = { title: string }
-export type ParsedAsset = { sectionIndex: number; path: string; name: string; type: string }
+type ParsedSection = { title: string }
+type ParsedAsset = { sectionIndex: number; path: string; name: string; type: string }
 
-export type ZipStructure = {
+type ZipStructure = {
   courseTitle: string
   sections: ParsedSection[]
   assets: ParsedAsset[]
 }
 
-/**
- * ZIP convention: root has one folder (course folder) = course title.
- * Its subfolders = sections (order by name). Files inside each = assets.
- * Root-level files inside course folder go into a "Resources" section.
- */
-export function getStructure(zip: JSZip): ZipStructure {
+function getStructure(zip: JSZip): ZipStructure {
   const paths = Object.keys(zip.files).filter((p) => !p.endsWith('/'))
   if (paths.length === 0) {
     return { courseTitle: 'Untitled Course', sections: [], assets: [] }
+  }
+  if (paths.length > MAX_FILES) {
+    throw new Error(`Too many files (max ${MAX_FILES})`)
   }
 
   const parts = paths.map((p) => p.split('/').filter(Boolean))
@@ -119,89 +113,99 @@ export function getStructure(zip: JSZip): ZipStructure {
   return { courseTitle, sections, assets }
 }
 
-export async function loadZip(blob: Blob): Promise<JSZip> {
-  return JSZip.loadAsync(blob)
-}
-
-export async function extractFile(zip: JSZip, path: string): Promise<Blob> {
-  const file = zip.files[path]
-  if (!file || file.dir) {
-    throw new Error(`Not a file: ${path}`)
+export async function ingestZip(buffer: Buffer): Promise<{
+  courseId: string
+  fileNames: string[]
+}> {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client is not configured')
   }
-  return file.async('blob')
-}
 
-export type ProcessProgress = {
-  phase: 'sections' | 'assets'
-  current: number
-  total: number
-}
-
-export async function processZipIntoCourse(
-  zipBlob: Blob,
-  courseTitleOverride?: string,
-  onProgress?: (p: ProcessProgress) => void
-): Promise<{ courseId: string }> {
-  const zip = await loadZip(zipBlob)
+  const zip = await JSZip.loadAsync(buffer)
   const { courseTitle, sections, assets } = getStructure(zip)
-  const title = courseTitleOverride?.trim() || courseTitle
 
-  const course = await createCourse({
-    title,
-    description: null,
-    level: null,
-  })
-  if (!course) throw new Error('Failed to create course')
-  const courseId = course.id
+  const { data: course, error: courseError } = await supabaseAdmin
+    .from('courses')
+    .insert({
+      title: courseTitle,
+      description: null,
+      level: null,
+    })
+    .select('id')
+    .single()
+
+  if (courseError || !course) {
+    console.error('ingestZip course insert:', courseError)
+    throw new Error(courseError?.message ?? 'Failed to create course')
+  }
+
+  const courseId = course.id as string
 
   for (let i = 0; i < sections.length; i++) {
-    await createSection({
-      course_id: courseId,
-      title: sections[i].title,
-      order: i,
-    })
-  }
-
-  const sectionIds = await fetchSectionIdsForCourse(courseId)
-  if (sectionIds.length !== sections.length) {
-    throw new Error('Failed to create some sections')
-  }
-
-  const total = assets.length
-  for (let start = 0; start < assets.length; start += BATCH_SIZE) {
-    const batch = assets.slice(start, start + BATCH_SIZE)
-    onProgress?.({ phase: 'assets', current: start, total })
-
-    for (const asset of batch) {
-      const blob = await extractFile(zip, asset.path)
-      const sectionId = sectionIds[asset.sectionIndex]
-      const url = await uploadAssetFile(
-        courseId,
-        sectionId,
-        asset.name,
-        blob
-      )
-      await createAsset({
-        section_id: sectionId,
-        name: asset.name,
-        type: asset.type,
-        url,
-        content: null,
+    const { error: sectionError } = await supabaseAdmin
+      .from('course_sections')
+      .insert({
+        course_id: courseId,
+        title: sections[i].title,
+        order: i,
       })
+
+    if (sectionError) {
+      console.error('ingestZip section insert:', sectionError)
+      throw new Error(sectionError.message)
     }
   }
-  onProgress?.({ phase: 'assets', current: total, total })
 
-  return { courseId }
-}
-
-async function fetchSectionIdsForCourse(courseId: string): Promise<string[]> {
-  const { data, error } = await supabase
+  const sectionIdsResult = await supabaseAdmin
     .from('course_sections')
     .select('id')
     .eq('course_id', courseId)
     .order('order', { ascending: true })
 
-  if (error) throw error
-  return (data ?? []).map((r) => r.id)
+  if (sectionIdsResult.error || !sectionIdsResult.data?.length) {
+    throw new Error('Failed to fetch section IDs')
+  }
+
+  const sectionIds = sectionIdsResult.data.map((r) => r.id as string)
+  const fileNames: string[] = []
+
+  for (const asset of assets) {
+    const entry = zip.files[asset.path]
+    if (!entry || entry.dir) continue
+
+    const blob = await entry.async('nodebuffer')
+    const sectionId = sectionIds[asset.sectionIndex]
+    const path = `${courseId}/${sectionId}/${asset.name}`
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, blob, { upsert: true })
+
+    if (uploadError) {
+      console.error('ingestZip storage upload:', uploadError)
+      throw new Error(uploadError.message)
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
+
+    validateCourseAssetForInsert(asset.type, undefined, publicUrl)
+
+    const { error: assetError } = await supabaseAdmin.from('course_assets').insert({
+      section_id: sectionId,
+      name: asset.name,
+      type: asset.type,
+      url: publicUrl,
+    })
+
+    if (assetError) {
+      console.error('ingestZip asset insert:', assetError)
+      throw new Error(assetError.message)
+    }
+
+    fileNames.push(asset.name)
+  }
+
+  return { courseId, fileNames }
 }

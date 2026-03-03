@@ -1,26 +1,39 @@
-import { NodeSDK } from '@opentelemetry/sdk-node'
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
 import { LangfuseSpanProcessor } from '@langfuse/otel'
 
 const publicKey = process.env.LANGFUSE_PUBLIC_KEY
 const secretKey = process.env.LANGFUSE_SECRET_KEY
 const baseUrl = process.env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com'
 
-// LangfuseSpanProcessor targets OTEL sdk-trace-base v2; NodeSDK uses v1 trace types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const sdk =
+export const tracerProvider =
   publicKey && secretKey
-    ? new NodeSDK({
+    ? new NodeTracerProvider({
         spanProcessors: [
           new LangfuseSpanProcessor({ publicKey, secretKey, baseUrl }),
-        ] as any,
+        ],
       })
     : null
 
 export function startInstrumentation(): void {
-  if (sdk) sdk.start()
+  if (!tracerProvider) return
+  try {
+    tracerProvider.register()
+  } catch (err) {
+    console.warn(
+      'Langfuse/OTEL instrumentation failed to start:',
+      err instanceof Error ? err.message : err
+    )
+  }
 }
 
-export function shutdownInstrumentation(): Promise<void> {
-  if (sdk) return sdk.shutdown()
-  return Promise.resolve()
+export async function shutdownInstrumentation(): Promise<void> {
+  if (!tracerProvider) return
+  try {
+    await tracerProvider.shutdown()
+  } catch (err) {
+    console.warn(
+      'Langfuse/OTEL shutdown error:',
+      err instanceof Error ? err.message : err
+    )
+  }
 }

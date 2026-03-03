@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import {
   getCourseById,
   getSectionsByCourseId,
   getAssetsBySectionId,
+  getLessonById,
 } from '@/services/courses'
 import type { Course } from '@/lib/database.types'
 import type { CourseSection } from '@/lib/database.types'
@@ -21,7 +23,9 @@ export function CoursePlayer() {
   const [sectionsWithAssets, setSectionsWithAssets] = useState<
     SectionWithAssets[]
   >([])
+  const [lesson, setLesson] = useState<CourseAsset | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingLesson, setLoadingLesson] = useState(false)
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
@@ -86,6 +90,37 @@ export function CoursePlayer() {
     return flatAssets[0] ?? null
   }, [flatAssets, lessonParam])
 
+  // When URL has no ?lesson=, show first asset from list
+  useEffect(() => {
+    if (!lessonParam && flatAssets.length > 0) {
+      setLesson(flatAssets[0] ?? null)
+    }
+    if (!lessonParam && flatAssets.length === 0) {
+      setLesson(null)
+    }
+  }, [lessonParam, flatAssets])
+
+  // When URL has ?lesson=, fetch lesson by ID and refetch when param changes
+  useEffect(() => {
+    if (!lessonParam) return
+    let cancelled = false
+    setLoadingLesson(true)
+    getLessonById(lessonParam)
+      .then((fetched) => {
+        if (cancelled) return
+        setLesson(fetched)
+      })
+      .catch(() => {
+        if (!cancelled) setLesson(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLesson(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [lessonParam])
+
   const selectLesson = (assetId: string) => {
     setSearchParams({ lesson: assetId })
   }
@@ -127,8 +162,38 @@ export function CoursePlayer() {
     <div className="flex min-h-0 flex-1 flex-col gap-6">
       <SectionHeader
         title={course.title}
-        description={course.description ?? undefined}
+        description={course.description || 'No description available'}
       />
+      {course.overview_audio_url && (
+        <div>
+          <p className="text-body-sm font-medium text-foreground mb-1">
+            Course overview
+          </p>
+          <audio
+            src={course.overview_audio_url}
+            controls
+            className="w-full max-w-md"
+          />
+        </div>
+      )}
+      {course.intro_video_status === 'processing' && (
+        <p className="text-body-sm text-muted-foreground">
+          AI intro video is being generated...
+        </p>
+      )}
+      {course.intro_video_status === 'ready' &&
+        course.intro_video_url && (
+          <div>
+            <p className="text-body-sm font-medium text-foreground mb-1">
+              Intro video
+            </p>
+            <video
+              src={course.intro_video_url}
+              controls
+              className="rounded-lg border border-border bg-card max-w-2xl"
+            />
+          </div>
+        )}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
         <aside className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
           <nav
@@ -164,68 +229,83 @@ export function CoursePlayer() {
           </nav>
         </aside>
         <main className="flex min-h-0 flex-col gap-4">
-          {selectedAsset && (
+          {loadingLesson && (
+            <div className="text-body-sm text-muted-foreground">
+              Loading lesson...
+            </div>
+          )}
+          {!loadingLesson && !lesson && (
+            <div className="text-body-sm text-muted-foreground">
+              Lesson not found
+            </div>
+          )}
+          {!loadingLesson && lesson && (
             <>
               <div>
                 <h2 className="text-heading font-semibold text-foreground">
-                  {selectedAsset.name}
+                  {lesson.name}
                 </h2>
-                <p className="mt-1 text-body-sm text-muted-foreground">
-                  No description
-                </p>
               </div>
               <div className="min-h-0 flex-1 rounded-lg border border-border bg-card overflow-hidden">
-                {selectedAsset.type === 'video' && (
+                {lesson.type === 'text' && (
+                  <div className="prose max-w-none p-6">
+                    <ReactMarkdown>{lesson.content ?? ''}</ReactMarkdown>
+                  </div>
+                )}
+                {lesson.type === 'video' && lesson.url && (
                   <video
-                    key={selectedAsset.id}
-                    src={selectedAsset.url}
+                    key={lesson.id}
+                    src={lesson.url}
                     controls
                     className="h-full w-full"
-                    title={selectedAsset.name}
+                    title={lesson.name}
                   />
                 )}
-                {(selectedAsset.type === 'document' ||
-                  selectedAsset.type === 'pdf') && (
+                {(lesson.type === 'document' || lesson.type === 'pdf') && lesson.url && (
                   <iframe
-                    key={selectedAsset.id}
-                    src={selectedAsset.url}
-                    title={selectedAsset.name}
-                    className="h-full min-h-[400px] w-full"
+                    key={lesson.id}
+                    src={lesson.url}
+                    title={lesson.name}
+                    className="w-full h-[600px]"
                   />
                 )}
-                {selectedAsset.type === 'audio' && (
+                {lesson.type === 'audio' && lesson.url && (
                   <div className="flex flex-col items-center justify-center gap-4 p-8">
                     <p className="text-body-sm text-muted-foreground">
-                      {selectedAsset.name}
+                      {lesson.name}
                     </p>
                     <audio
-                      key={selectedAsset.id}
-                      src={selectedAsset.url}
+                      key={lesson.id}
+                      src={lesson.url}
                       controls
                       className="w-full max-w-md"
                     />
                   </div>
                 )}
-                {(selectedAsset.type === 'image' ||
-                  selectedAsset.type === 'file') && (
+                {(lesson.type === 'image' || lesson.type === 'file') && lesson.url && (
                   <div className="flex flex-col items-center justify-center gap-4 p-8">
-                    {selectedAsset.type === 'image' ? (
+                    {lesson.type === 'image' ? (
                       <img
-                        key={selectedAsset.id}
-                        src={selectedAsset.url}
-                        alt={selectedAsset.name}
+                        key={lesson.id}
+                        src={lesson.url}
+                        alt={lesson.name}
                         className="max-h-[70vh] w-auto max-w-full object-contain"
                       />
                     ) : (
                       <a
-                        href={selectedAsset.url}
+                        href={lesson.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-body text-primary underline"
                       >
-                        Open {selectedAsset.name}
+                        Open {lesson.name}
                       </a>
                     )}
+                  </div>
+                )}
+                {!['text', 'video', 'document', 'pdf', 'audio', 'image', 'file'].includes(lesson.type) && (
+                  <div className="p-6 text-body-sm text-muted-foreground">
+                    Unsupported lesson type: {lesson.type}
                   </div>
                 )}
               </div>
