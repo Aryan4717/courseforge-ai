@@ -8,6 +8,7 @@ import { CourseCardSkeleton } from '@/components/dashboard/CourseCardSkeleton'
 import { ActiveVideoProvider } from '@/components/dashboard/CourseCard'
 import { useAuthStore } from '@/store/authStore'
 import { getPurchasesWithCourses } from '@/services/courses'
+import { getCourseTopicIcons } from '@/services/createCourseApi'
 import type { Course } from '@/lib/database.types'
 
 function ErrorIcon() {
@@ -35,6 +36,7 @@ function ErrorIcon() {
 export function Library() {
   const user = useAuthStore((s) => s.user)
   const [courses, setCourses] = useState<Course[]>([])
+  const [topicIcons, setTopicIcons] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
