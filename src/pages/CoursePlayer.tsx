@@ -129,6 +129,36 @@ export function CoursePlayer() {
         title={course.title}
         description={course.description ?? undefined}
       />
+      {course.overview_audio_url && (
+        <div>
+          <p className="text-body-sm font-medium text-foreground mb-1">
+            Course overview
+          </p>
+          <audio
+            src={course.overview_audio_url}
+            controls
+            className="w-full max-w-md"
+          />
+        </div>
+      )}
+      {course.intro_video_status === 'processing' && (
+        <p className="text-body-sm text-muted-foreground">
+          AI intro video is being generated...
+        </p>
+      )}
+      {course.intro_video_status === 'ready' &&
+        course.intro_video_url && (
+          <div>
+            <p className="text-body-sm font-medium text-foreground mb-1">
+              Intro video
+            </p>
+            <video
+              src={course.intro_video_url}
+              controls
+              className="rounded-lg border border-border bg-card max-w-2xl"
+            />
+          </div>
+        )}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
         <aside className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
           <nav

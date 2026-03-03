@@ -4,6 +4,10 @@ export interface Course {
   description: string | null
   level: string | null
   created_at: string
+  overview_audio_url?: string | null
+  intro_video_url?: string | null
+  intro_video_status?: string | null
+  intro_video_id?: string | null
 }
 
 export interface CourseSection {
