@@ -28,7 +28,7 @@ export function CreateCourse() {
   const navigate = useNavigate()
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <SectionHeader
         title="Create your course"
         description="Choose how you'd like to get started."
