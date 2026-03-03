@@ -1,5 +1,6 @@
 import JSZip from 'jszip'
 import { supabaseAdmin } from './supabase.js'
+import { validateCourseAssetForInsert } from './createCourse.js'
 
 const BUCKET = 'course-assets'
 const MAX_FILES = 100
@@ -188,6 +189,8 @@ export async function ingestZip(buffer: Buffer): Promise<{
     const {
       data: { publicUrl },
     } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
+
+    validateCourseAssetForInsert(asset.type, undefined, publicUrl)
 
     const { error: assetError } = await supabaseAdmin.from('course_assets').insert({
       section_id: sectionId,

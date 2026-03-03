@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase.js'
+import { generateLessonContent } from './generateLessonContent.js'
 
 export type CreateCoursePayload = {
   title: string
@@ -7,7 +8,22 @@ export type CreateCoursePayload = {
   sections: { title: string; lessons: string[] }[]
 }
 
-const PLACEHOLDER_URL = '#'
+/** Validates asset insert: text requires content; other types require url. */
+export function validateCourseAssetForInsert(
+  type: string,
+  content: string | null | undefined,
+  url: string | null | undefined
+): void {
+  if (type === 'text') {
+    if (content == null || content.trim() === '') {
+      throw new Error('Lesson type "text" requires non-empty content')
+    }
+  } else {
+    if (url == null || url.trim() === '') {
+      throw new Error(`Lesson type "${type}" requires a non-empty url`)
+    }
+  }
+}
 
 export async function createCourseFromStructure(
   payload: CreateCoursePayload
@@ -52,15 +68,27 @@ export async function createCourseFromStructure(
 
     const sectionId = sectionRow.id as string
     const lessons = section.lessons ?? []
+    const courseTitle = payload.title
+    const sectionTitle = section.title
+    const level = payload.level ?? 'beginner'
 
     for (const lessonTitle of lessons) {
+      const content = await generateLessonContent(
+        courseTitle,
+        sectionTitle,
+        lessonTitle,
+        level
+      )
+      validateCourseAssetForInsert('text', content, null)
+
       const { error: assetError } = await supabaseAdmin
         .from('course_assets')
         .insert({
           section_id: sectionId,
           name: lessonTitle,
           type: 'text',
-          url: PLACEHOLDER_URL,
+          content,
+          url: null,
         })
 
       if (assetError) {

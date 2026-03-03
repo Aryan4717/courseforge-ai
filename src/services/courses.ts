@@ -115,6 +115,23 @@ export async function getAssetsBySectionId(
   )
 }
 
+export async function getLessonById(
+  lessonId: string
+): Promise<CourseAsset | null> {
+  const { data, error } = await supabase
+    .from('course_assets')
+    .select('*')
+    .eq('id', lessonId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('getLessonById error:', error)
+    throw error
+  }
+
+  return data as CourseAsset | null
+}
+
 export async function createSection(
   data: CourseSectionInsert
 ): Promise<CourseSection | null> {
@@ -145,7 +162,8 @@ export async function createAsset(
       section_id: data.section_id,
       name: data.name,
       type: data.type,
-      url: data.url,
+      url: data.url ?? null,
+      content: data.content ?? null,
     })
     .select()
     .single()
