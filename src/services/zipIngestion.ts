@@ -186,6 +186,7 @@ export async function processZipIntoCourse(
         name: asset.name,
         type: asset.type,
         url,
+        content: null,
       })
     }
   }
