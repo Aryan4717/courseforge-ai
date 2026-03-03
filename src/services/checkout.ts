@@ -1,8 +1,4 @@
-const getBaseUrl = (): string => {
-  const url = import.meta.env.VITE_LLM_API_URL
-  if (url) return url.replace(/\/$/, '')
-  return '/api'
-}
+import { API_BASE_URL } from '@/config'
 
 export type CreateCheckoutSessionResult = { url: string | null }
 
@@ -10,7 +6,7 @@ export async function createCheckoutSession(
   courseId: string,
   userId: string
 ): Promise<CreateCheckoutSessionResult> {
-  const res = await fetch(`${getBaseUrl()}/create-checkout-session`, {
+  const res = await fetch(`${API_BASE_URL}/create-checkout-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ courseId, userId }),

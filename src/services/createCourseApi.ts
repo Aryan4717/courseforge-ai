@@ -1,8 +1,4 @@
-const getBaseUrl = (): string => {
-  const url = import.meta.env.VITE_LLM_API_URL
-  if (url) return url.replace(/\/$/, '')
-  return '/api'
-}
+import { API_BASE_URL } from '@/config'
 
 export type CourseStructureSection = { title: string; lessons: string[] }
 export type CourseStructure = {
@@ -23,7 +19,7 @@ export async function generateCourseStructure(
   level: string,
   duration: string
 ): Promise<CourseStructure> {
-  const res = await fetch(`${getBaseUrl()}/generate-course-structure`, {
+  const res = await fetch(`${API_BASE_URL}/generate-course-structure`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ topic, level, duration }),
@@ -38,7 +34,7 @@ export async function generateCourseStructure(
 export async function createCourse(
   payload: CreateCoursePayload
 ): Promise<{ courseId: string }> {
-  const res = await fetch(`${getBaseUrl()}/create-course`, {
+  const res = await fetch(`${API_BASE_URL}/create-course`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -56,7 +52,7 @@ export async function ingestZip(file: File): Promise<{
 }> {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${getBaseUrl()}/ingest-zip`, {
+  const res = await fetch(`${API_BASE_URL}/ingest-zip`, {
     method: 'POST',
     body: form,
   })
@@ -70,7 +66,7 @@ export async function ingestZip(file: File): Promise<{
 export async function generateMetadata(
   fileNames: string[]
 ): Promise<{ title: string; description: string }> {
-  const res = await fetch(`${getBaseUrl()}/generate-metadata`, {
+  const res = await fetch(`${API_BASE_URL}/generate-metadata`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fileNames }),
@@ -86,7 +82,7 @@ export async function updateCourse(
   courseId: string,
   updates: { title: string; description: string }
 ): Promise<void> {
-  const res = await fetch(`${getBaseUrl()}/update-course/${courseId}`, {
+  const res = await fetch(`${API_BASE_URL}/update-course/${courseId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -101,7 +97,7 @@ export function triggerGenerateAudio(
   courseId: string,
   payload: { title: string; description?: string }
 ): void {
-  fetch(`${getBaseUrl()}/generate-audio`, {
+  fetch(`${API_BASE_URL}/generate-audio`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -116,7 +112,7 @@ export function triggerGenerateAvatarVideo(
   courseId: string,
   payload: { title: string; description?: string }
 ): void {
-  fetch(`${getBaseUrl()}/generate-avatar-video`, {
+  fetch(`${API_BASE_URL}/generate-avatar-video`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

@@ -1,8 +1,10 @@
 import 'dotenv/config'
+import cors from 'cors'
 import express from 'express'
 import Stripe from 'stripe'
 import { startInstrumentation, shutdownInstrumentation } from './instrumentation.js'
 import {
+  chatInstructor,
   generateMetadata,
   structureSections,
 } from './llmService.js'
@@ -85,7 +87,15 @@ app.post(
   }
 )
 
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true,
+}))
 app.use(express.json())
+
+app.get('/', (_req, res) => {
+  res.status(200).send('Backend is running')
+})
 
 /** Update course media fields (overview_audio_url, intro_video_url, intro_video_status, intro_video_id). */
 async function updateCourseMedia(
@@ -162,7 +172,7 @@ function getFrontendOrigin(req: express.Request): string {
       // ignore
     }
   }
-  return 'http://localhost:5173'
+  return process.env.FRONTEND_URL || ''
 }
 
 app.post('/create-checkout-session', async (req, res) => {
@@ -177,6 +187,10 @@ app.post('/create-checkout-session', async (req, res) => {
       return
     }
     const origin = getFrontendOrigin(req)
+    if (!origin) {
+      res.status(400).json({ error: 'FRONTEND_URL must be set for checkout redirects' })
+      return
+    }
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [
@@ -426,9 +440,26 @@ app.post('/structure-sections', async (req, res) => {
   }
 })
 
+app.post('/chat-instructor', async (req, res) => {
+  try {
+    const { messages } = req.body as { messages?: { role: string; content: string }[] }
+    if (!Array.isArray(messages)) {
+      res.status(400).json({ error: 'Missing or invalid messages array' })
+      return
+    }
+    const result = await chatInstructor(messages)
+    res.json(result)
+  } catch (err) {
+    console.error('chatInstructor error:', err)
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'chatInstructor failed',
+    })
+  }
+})
+
 const PORT = Number(process.env.PORT) || 3001
 const server = app.listen(PORT, () => {
-  console.log(`LLM server listening on http://localhost:${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 })
 
 async function shutdown(): Promise<void> {
