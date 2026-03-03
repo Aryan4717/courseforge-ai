@@ -14,34 +14,34 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-semibold">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6">
+        <Link to="/" className="shrink-0 font-semibold">
           CourseForge AI
         </Link>
         {!isLoading && (
-          <nav className="flex items-center gap-2">
+          <nav className="flex min-w-0 shrink items-center justify-end gap-4">
             {user ? (
               <>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" asChild className="shrink-0">
                   <Link to="/library">My Library</Link>
                 </Button>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" asChild className="shrink-0">
                   <Link to="/create">Create course</Link>
                 </Button>
-                <span className="text-body-sm text-muted-foreground">
+                <span className="max-w-[180px] truncate text-body-sm text-muted-foreground sm:max-w-[220px]">
                   {user.email}
                 </span>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
+                <Button variant="outline" size="sm" onClick={handleLogout} className="shrink-0">
                   Log out
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" asChild className="shrink-0">
                   <Link to="/login">Log in</Link>
                 </Button>
-                <Button size="sm" asChild>
+                <Button size="sm" asChild className="shrink-0">
                   <Link to="/signup">Sign up</Link>
                 </Button>
               </>

@@ -71,6 +71,37 @@ export async function structureSections(
   })
 }
 
+export type CourseTopicIconInput = { id: string; title: string; description?: string | null }
+export type CourseTopicIconsResult = Record<string, string>
+
+export async function getCourseTopicIcons(
+  courses: CourseTopicIconInput[]
+): Promise<CourseTopicIconsResult> {
+  if (courses.length === 0) return {}
+  return startActiveObservation('getCourseTopicIcons', async (span) => {
+    span.update({ input: { count: courses.length } })
+    try {
+      const list = courses
+        .map((c, i) => `${i + 1}. id="${c.id}" title="${c.title}"${c.description ? ` description="${c.description.slice(0, 100)}"` : ''}`)
+        .join('\n')
+      const systemPrompt = `You are a course icon assistant. Given a list of courses, return a JSON object mapping each course id to exactly ONE emoji that best represents that course topic. Use only standard Unicode emojis. Keys must be the exact course ids. Example: {"uuid-1":"🧠","uuid-2":"🗄️"}. No other keys or text.`
+      const userContent = `Courses:\n${list}`
+      const raw = await completion(systemPrompt, userContent)
+      const parsed = JSON.parse(raw) as Record<string, string>
+      const result: CourseTopicIconsResult = {}
+      for (const c of courses) {
+        const emoji = parsed[c.id]
+        result[c.id] = typeof emoji === 'string' && emoji.length > 0 ? emoji.trim() : '📚'
+      }
+      span.update({ output: { count: Object.keys(result).length } })
+      return result
+    } catch (err) {
+      span.update({ output: undefined, metadata: { error: String(err) } })
+      throw err
+    }
+  })
+}
+
 export async function chatInstructor(
   messages: ChatMessage[]
 ): Promise<ChatInstructorResult> {

@@ -62,7 +62,7 @@ export function EmptyState({
   const Icon = icon === 'library' ? IconLibrary : IconBook
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-muted/30 px-8 py-12 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card px-8 py-12 text-center">
       <div className="mb-4">
         <Icon />
       </div>

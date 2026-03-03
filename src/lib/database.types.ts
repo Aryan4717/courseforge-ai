@@ -4,6 +4,7 @@ export interface Course {
   description: string | null
   level: string | null
   created_at: string
+  thumbnail_url?: string | null
   overview_audio_url?: string | null
   intro_video_url?: string | null
   intro_video_status?: string | null

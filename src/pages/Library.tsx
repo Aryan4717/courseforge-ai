@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SectionHeader } from '@/components/ui/SectionHeader'
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/Card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/dashboard/EmptyState'
+import { CourseCard } from '@/components/dashboard/CourseCard'
 import { CourseCardSkeleton } from '@/components/dashboard/CourseCardSkeleton'
+import { ActiveVideoProvider } from '@/components/dashboard/CourseCard'
 import { useAuthStore } from '@/store/authStore'
 import { getPurchasesWithCourses } from '@/services/courses'
+import { getCourseTopicIcons } from '@/services/createCourseApi'
 import type { Course } from '@/lib/database.types'
 
 function ErrorIcon() {
@@ -40,6 +36,7 @@ function ErrorIcon() {
 export function Library() {
   const user = useAuthStore((s) => s.user)
   const [courses, setCourses] = useState<Course[]>([])
+  const [topicIcons, setTopicIcons] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,6 +47,17 @@ export function Library() {
     try {
       const data = await getPurchasesWithCourses(user.id)
       setCourses(data)
+      const needIcons = data.filter((c) => !c.thumbnail_url)
+      if (needIcons.length > 0) {
+        try {
+          const icons = await getCourseTopicIcons(
+            needIcons.map((c) => ({ id: c.id, title: c.title, description: c.description }))
+          )
+          setTopicIcons(icons)
+        } catch {
+          // Icons are optional; fallback to generic placeholder
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load library')
     } finally {
@@ -83,7 +91,7 @@ export function Library() {
         )}
 
         {error && (
-          <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 px-6 py-6">
+          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card px-6 py-6">
             <div className="flex items-center gap-3">
               <ErrorIcon />
               <p className="text-body text-foreground">{error}</p>
@@ -113,48 +121,18 @@ export function Library() {
         )}
 
         {!loading && !error && courses.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
-              <Link
-                key={course.id}
-                to={`/course/${course.id}`}
-                className="group block transition-opacity hover:opacity-95"
-              >
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="text-heading font-semibold">
-                      {course.title}
-                    </CardTitle>
-                    {course.description && (
-                      <CardDescription className="line-clamp-2">
-                        {course.description}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardFooter className="pt-0">
-                    <span className="flex items-center gap-1.5 text-body-sm text-primary font-medium transition-transform group-hover:translate-x-0.5">
-                      View course
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden
-                      >
-                        <path d="M5 12h14" />
-                        <path d="m12 5 7 7-7 7" />
-                      </svg>
-                    </span>
-                  </CardFooter>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          <ActiveVideoProvider>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  to={`/course/${course.id}`}
+                  topicEmoji={topicIcons[course.id]}
+                />
+              ))}
+            </div>
+          </ActiveVideoProvider>
         )}
       </section>
     </div>
