@@ -1,8 +1,4 @@
-const getBaseUrl = (): string => {
-  const url = import.meta.env.VITE_LLM_API_URL
-  if (url) return url.replace(/\/$/, '')
-  return '/api'
-}
+import { API_BASE_URL } from '@/config'
 
 export type GenerateMetadataResult = { title: string; description: string }
 export type StructureSectionsResult = {
@@ -13,7 +9,7 @@ export type ChatInstructorResult = { content: string }
 export async function generateMetadata(
   fileNames: string[]
 ): Promise<GenerateMetadataResult> {
-  const res = await fetch(`${getBaseUrl()}/generate-metadata`, {
+  const res = await fetch(`${API_BASE_URL}/generate-metadata`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fileNames }),
@@ -28,7 +24,7 @@ export async function generateMetadata(
 export async function structureSections(
   fileNames: string[]
 ): Promise<StructureSectionsResult> {
-  const res = await fetch(`${getBaseUrl()}/structure-sections`, {
+  const res = await fetch(`${API_BASE_URL}/structure-sections`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fileNames }),
@@ -41,7 +37,7 @@ export async function structureSections(
 }
 
 export async function chatInstructor(messages: { role: string; content: string }[]): Promise<ChatInstructorResult> {
-  const res = await fetch(`${getBaseUrl()}/chat-instructor`, {
+  const res = await fetch(`${API_BASE_URL}/chat-instructor`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages }),

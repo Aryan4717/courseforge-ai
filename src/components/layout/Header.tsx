@@ -27,10 +27,7 @@ export function Header() {
                   <Link to="/library">My Library</Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
-                  <Link to="/onboarding">Create course</Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/upload">Upload course</Link>
+                  <Link to="/create">Create course</Link>
                 </Button>
                 <span className="text-body-sm text-muted-foreground">
                   {user.email}
