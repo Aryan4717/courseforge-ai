@@ -1,0 +1,8 @@
+# Render deployment config for Express backend
+# Override in Dashboard if you already have a service configured
+services:
+  - type: web
+    name: courseforge-ai
+    runtime: node
+    buildCommand: npm install && npm run build:server
+    startCommand: npm start
