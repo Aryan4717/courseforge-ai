@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import cors from 'cors'
-import express from 'express'
+import express, { Request, Response } from 'express'
 import Stripe from 'stripe'
 import { startInstrumentation, shutdownInstrumentation } from './instrumentation.js'
 import {
@@ -39,7 +39,7 @@ const app = express()
 app.post(
   '/stripe-webhook',
   express.raw({ type: 'application/json' }),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     if (!stripe || !stripeWebhookSecret) {
       res.status(503).send('Stripe webhook not configured')
       return
@@ -94,7 +94,7 @@ app.use(cors({
 }))
 app.use(express.json())
 
-app.get('/', (_req, res) => {
+app.get('/', (_req: Request, res: Response) => {
   res.status(200).send('Backend is running')
 })
 
@@ -161,10 +161,10 @@ function ensurePollerRunning(): void {
   }, POLL_INTERVAL_MS)
 }
 
-function getFrontendOrigin(req: express.Request): string {
+function getFrontendOrigin(req: Request): string {
   const fromEnv = process.env.FRONTEND_URL
   if (fromEnv) return fromEnv.replace(/\/$/, '')
-  const origin = req.get('Origin') || req.get('Referer')
+  const origin = req.header('Origin') || req.header('Referer')
   if (origin) {
     try {
       const u = new URL(origin)
@@ -176,7 +176,7 @@ function getFrontendOrigin(req: express.Request): string {
   return process.env.FRONTEND_URL || ''
 }
 
-app.post('/create-checkout-session', async (req, res) => {
+app.post('/create-checkout-session', async (req: Request, res: Response) => {
   if (!stripe) {
     res.status(503).json({ error: 'Stripe not configured' })
     return
@@ -220,7 +220,7 @@ app.post('/create-checkout-session', async (req, res) => {
   }
 })
 
-app.post('/generate-metadata', async (req, res) => {
+app.post('/generate-metadata', async (req: Request, res: Response) => {
   try {
     const { fileNames } = req.body as { fileNames?: string[] }
     if (!Array.isArray(fileNames)) {
@@ -237,7 +237,7 @@ app.post('/generate-metadata', async (req, res) => {
   }
 })
 
-app.post('/generate-course-structure', async (req, res) => {
+app.post('/generate-course-structure', async (req: Request, res: Response) => {
   if (!supabaseAdmin) {
     res.status(503).json({ error: 'Service not configured' })
     return
@@ -266,7 +266,7 @@ app.post('/generate-course-structure', async (req, res) => {
   }
 })
 
-app.post('/create-course', async (req, res) => {
+app.post('/create-course', async (req: Request, res: Response) => {
   if (!supabaseAdmin) {
     res.status(503).json({ error: 'Service not configured' })
     return
@@ -301,7 +301,7 @@ app.post('/create-course', async (req, res) => {
   }
 })
 
-app.post('/ingest-zip', upload.single('file'), async (req, res) => {
+app.post('/ingest-zip', upload.single('file'), async (req: Request, res: Response) => {
   if (!supabaseAdmin) {
     res.status(503).json({ error: 'Service not configured' })
     return
@@ -326,13 +326,13 @@ app.post('/ingest-zip', upload.single('file'), async (req, res) => {
   }
 })
 
-app.patch('/update-course/:courseId', async (req, res) => {
+app.patch('/update-course/:courseId', async (req: Request, res: Response) => {
   if (!supabaseAdmin) {
     res.status(503).json({ error: 'Service not configured' })
     return
   }
   try {
-    const courseId = req.params.courseId
+    const courseId = req.params.courseId as string
     const { title, description } = req.body as { title?: string; description?: string }
     await updateCourseMetadata(courseId, { title, description })
     res.json({ ok: true })
@@ -344,7 +344,7 @@ app.patch('/update-course/:courseId', async (req, res) => {
   }
 })
 
-app.post('/generate-audio', async (req, res) => {
+app.post('/generate-audio', async (req: Request, res: Response) => {
   if (!supabaseAdmin) {
     res.status(503).json({ error: 'Media generation not configured' })
     return
@@ -377,7 +377,7 @@ app.post('/generate-audio', async (req, res) => {
   }
 })
 
-app.post('/generate-avatar-video', async (req, res) => {
+app.post('/generate-avatar-video', async (req: Request, res: Response) => {
   if (!supabaseAdmin) {
     res.status(503).json({ error: 'Media generation not configured' })
     return
@@ -420,7 +420,7 @@ app.post('/generate-avatar-video', async (req, res) => {
   }
 })
 
-app.post('/structure-sections', async (req, res) => {
+app.post('/structure-sections', async (req: Request, res: Response) => {
   try {
     const { fileNames } = req.body as { fileNames?: string[] }
     if (!Array.isArray(fileNames)) {
