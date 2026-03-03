@@ -10,6 +10,12 @@ import {
   triggerGenerateAvatarVideo,
 } from '@/services/createCourseApi'
 
+const STEPS = [
+  { label: 'Generating course structure', progress: 25 },
+  { label: 'Creating course and lessons', progress: 75 },
+  { label: 'Preparing your course', progress: 100 },
+] as const
+
 const LEVELS = [
   { value: 'Beginner', label: 'Beginner' },
   { value: 'Intermediate', label: 'Intermediate' },
@@ -28,6 +34,7 @@ export function CreateWithAI() {
   const [level, setLevel] = useState('Beginner')
   const [duration, setDuration] = useState('4 weeks')
   const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,14 +43,18 @@ export function CreateWithAI() {
     if (!trimmed || loading) return
     setError(null)
     setLoading(true)
+    setStep(0)
     try {
+      setStep(0)
       const structure = await generateCourseStructure(trimmed, level, duration)
+      setStep(1)
       const { courseId } = await createCourse({
         title: structure.title,
         description: structure.description,
         level,
         sections: structure.sections,
       })
+      setStep(2)
       triggerGenerateAudio(courseId, {
         title: structure.title,
         description: structure.description,
@@ -132,6 +143,31 @@ export function CreateWithAI() {
               <p className="text-body-sm text-destructive" role="alert">
                 {error}
               </p>
+            )}
+            {loading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-body-sm">
+                  <span className="text-muted-foreground">
+                    {STEPS[step].label}…
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {STEPS[step].progress}%
+                  </span>
+                </div>
+                <div
+                  className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={STEPS[step].progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={STEPS[step].label}
+                >
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-300"
+                    style={{ width: `${STEPS[step].progress}%` }}
+                  />
+                </div>
+              </div>
             )}
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Generating…' : 'Generate Course'}
