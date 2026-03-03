@@ -75,14 +75,15 @@ async function fetchSectionIdsForCourse(courseId: string): Promise<string[]> {
 
 /**
  * Process a ZIP using AI: generateMetadata + structureSections, then create
- * course, sections, and assets in Supabase. Returns courseId and shareable link.
+ * course, sections, and assets in Supabase. Returns courseId only; build
+ * share URL on the frontend with getCourseShareUrl(courseId).
  * File-name matching: section fileNames (from LLM) are matched to zip paths by
  * base name; first matching path wins when multiple files share a name.
  */
 export async function processZipWithAI(
   zipBlob: Blob,
   onProgress?: (p: ProcessProgress) => void
-): Promise<{ courseId: string; shareableLink: string }> {
+): Promise<{ courseId: string }> {
   const zip = await loadZip(zipBlob)
   const fileNames = getFileNamesFromZip(zip)
   if (fileNames.length === 0) throw new Error('ZIP contains no files')
@@ -144,10 +145,5 @@ export async function processZipWithAI(
   }
   onProgress?.({ phase: 'assets', current: total, total })
 
-  const shareableLink =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/courses/${courseId}`
-      : `${courseId}`
-
-  return { courseId, shareableLink }
+  return { courseId }
 }

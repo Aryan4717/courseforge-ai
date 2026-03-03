@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/store/authStore'
 import { getCourseById } from '@/services/courses'
 import { createCheckoutSession } from '@/services/checkout'
+import { getCourseShareUrl } from '@/utils/url'
 
 export function CourseShare() {
   const { id } = useParams<{ id: string }>()
@@ -17,10 +18,7 @@ export function CourseShare() {
   const [buyLoading, setBuyLoading] = useState(false)
   const [buyError, setBuyError] = useState<string | null>(null)
 
-  const shareableLink =
-    typeof window !== 'undefined' && id
-      ? `${window.location.origin}/courses/${id}`
-      : ''
+  const shareableLink = id ? getCourseShareUrl(id) : ''
 
   useEffect(() => {
     if (!id) {

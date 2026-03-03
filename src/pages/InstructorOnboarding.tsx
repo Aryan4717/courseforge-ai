@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { chatInstructor } from '@/services/llmApi'
 import { processZipWithAI } from '@/services/onboardingIngestion'
 import { type ProcessProgress } from '@/services/zipIngestion'
+import { getCourseShareUrl } from '@/utils/url'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
@@ -72,14 +73,12 @@ export function InstructorOnboarding() {
     setProgress(null)
     try {
       const blob = await file.arrayBuffer().then((b) => new Blob([b]))
-      const { shareableLink } = await processZipWithAI(blob, (p) =>
-        setProgress(p)
-      )
+      const { courseId } = await processZipWithAI(blob, (p) => setProgress(p))
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: `Course created. Share: ${shareableLink}`,
+          content: `Course created. Share: ${getCourseShareUrl(courseId)}`,
         },
       ])
     } catch (err) {
