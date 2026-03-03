@@ -13,8 +13,8 @@ export function SectionHeader({
   className,
 }: SectionHeaderProps) {
   return (
-    <header className={cn('space-y-1', className)}>
-      <h2 className="text-heading text-foreground">{title}</h2>
+    <header className={cn('space-y-2', className)}>
+      <h2 className="text-heading tracking-tight text-foreground">{title}</h2>
       {description != null && (
         <p className="text-body text-muted-foreground">{description}</p>
       )}
