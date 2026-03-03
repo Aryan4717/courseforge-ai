@@ -165,7 +165,7 @@ function ensurePollerRunning(): void {
 function getFrontendOrigin(req: Request): string {
   const fromEnv = process.env.FRONTEND_URL
   if (fromEnv) return fromEnv.replace(/\/$/, '')
-  const origin = req.get('Origin') || req.get('Referer')
+  const origin = req.header('Origin') || req.header('Referer')
   if (origin) {
     try {
       const u = new URL(origin)
