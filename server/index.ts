@@ -19,6 +19,7 @@ import { generateCourseStructure } from './generateCourseStructure.js'
 import { createCourseFromStructure } from './createCourse.js'
 import { updateCourseMetadata } from './updateCourse.js'
 import { ingestZip } from './ingestZip.js'
+import { buildIntroScript } from './utils/buildIntroScript.js'
 import multer from 'multer'
 
 const upload = multer({ storage: multer.memoryStorage() })
@@ -342,10 +343,6 @@ app.patch('/update-course/:courseId', async (req, res) => {
     })
   }
 })
-
-function buildIntroScript(title: string, description?: string | null): string {
-  return `Welcome to ${title}. ${(description ?? '').trim() || 'Let\'s get started.'}`
-}
 
 app.post('/generate-audio', async (req, res) => {
   if (!supabaseAdmin) {
