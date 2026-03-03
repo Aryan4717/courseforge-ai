@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 
 export function HeroSection() {
   return (
-    <div className="rounded-xl border border-border bg-card px-6 py-8 sm:py-10">
+    <div className="rounded-xl border border-border bg-card px-4 py-6 sm:px-6 sm:py-8 md:py-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">

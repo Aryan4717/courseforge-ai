@@ -8,7 +8,6 @@ import { CourseCard } from '@/components/dashboard/CourseCard'
 import { CourseCardSkeleton } from '@/components/dashboard/CourseCardSkeleton'
 import { ActiveVideoProvider } from '@/components/dashboard/CourseCard'
 import { getCourses } from '@/services/courses'
-import { getCourseTopicIcons } from '@/services/createCourseApi'
 import type { Course } from '@/lib/database.types'
 
 function ErrorIcon() {
@@ -35,7 +34,6 @@ function ErrorIcon() {
 
 export function Home() {
   const [courses, setCourses] = useState<Course[]>([])
-  const [topicIcons, setTopicIcons] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,17 +43,6 @@ export function Home() {
     try {
       const data = await getCourses()
       setCourses(data)
-      const needIcons = data.filter((c) => !c.thumbnail_url)
-      if (needIcons.length > 0) {
-        try {
-          const icons = await getCourseTopicIcons(
-            needIcons.map((c) => ({ id: c.id, title: c.title, description: c.description }))
-          )
-          setTopicIcons(icons)
-        } catch {
-          // Icons are optional; fallback to generic placeholder
-        }
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load courses')
     } finally {
@@ -68,7 +55,7 @@ export function Home() {
   }, [])
 
   return (
-    <div className="space-y-10">
+    <div className="min-w-0 space-y-8 sm:space-y-10">
       <HeroSection />
 
       <section className="space-y-2">
@@ -78,7 +65,7 @@ export function Home() {
         />
 
         {loading && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <CourseCardSkeleton key={i} />
             ))}
@@ -86,7 +73,7 @@ export function Home() {
         )}
 
         {error && (
-          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card px-6 py-6">
+          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 sm:px-6">
             <div className="flex items-center gap-3">
               <ErrorIcon />
               <p className="text-body text-foreground">{error}</p>
@@ -112,13 +99,12 @@ export function Home() {
 
         {!loading && !error && courses.length > 0 && (
           <ActiveVideoProvider>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
               {courses.map((course) => (
                 <CourseCard
                   key={course.id}
                   course={course}
                   to={`/courses/${course.id}`}
-                  topicEmoji={topicIcons[course.id]}
                 />
               ))}
             </div>

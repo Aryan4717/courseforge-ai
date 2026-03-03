@@ -6,7 +6,6 @@ import { startInstrumentation, shutdownInstrumentation } from './instrumentation
 import {
   chatInstructor,
   generateMetadata,
-  getCourseTopicIcons,
   structureSections,
 } from './llmService.js'
 import { supabaseAdmin } from './supabase.js'
@@ -234,29 +233,6 @@ app.post('/generate-metadata', async (req: Request, res: Response) => {
     console.error('generateMetadata error:', err)
     res.status(500).json({
       error: err instanceof Error ? err.message : 'generateMetadata failed',
-    })
-  }
-})
-
-app.post('/get-course-topic-icons', async (req: Request, res: Response) => {
-  try {
-    const { courses } = req.body as {
-      courses?: Array<{ id: string; title: string; description?: string | null }>
-    }
-    if (!Array.isArray(courses) || courses.length === 0) {
-      res.json({})
-      return
-    }
-    const valid = courses.filter(
-      (c): c is { id: string; title: string; description?: string | null } =>
-        c && typeof c.id === 'string' && typeof c.title === 'string'
-    )
-    const result = await getCourseTopicIcons(valid)
-    res.json(result)
-  } catch (err) {
-    console.error('getCourseTopicIcons error:', err)
-    res.status(500).json({
-      error: err instanceof Error ? err.message : 'getCourseTopicIcons failed',
     })
   }
 })

@@ -84,7 +84,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6">
+      <div className="mx-auto flex h-14 min-w-0 max-w-5xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
         <Link to="/" className="shrink-0 font-semibold">
           CourseForge AI
         </Link>

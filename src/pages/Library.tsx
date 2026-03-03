@@ -8,7 +8,6 @@ import { CourseCardSkeleton } from '@/components/dashboard/CourseCardSkeleton'
 import { ActiveVideoProvider } from '@/components/dashboard/CourseCard'
 import { useAuthStore } from '@/store/authStore'
 import { getPurchasesWithCourses } from '@/services/courses'
-import { getCourseTopicIcons } from '@/services/createCourseApi'
 import type { Course } from '@/lib/database.types'
 
 function ErrorIcon() {
@@ -36,7 +35,6 @@ function ErrorIcon() {
 export function Library() {
   const user = useAuthStore((s) => s.user)
   const [courses, setCourses] = useState<Course[]>([])
-  const [topicIcons, setTopicIcons] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,17 +45,6 @@ export function Library() {
     try {
       const data = await getPurchasesWithCourses(user.id)
       setCourses(data)
-      const needIcons = data.filter((c) => !c.thumbnail_url)
-      if (needIcons.length > 0) {
-        try {
-          const icons = await getCourseTopicIcons(
-            needIcons.map((c) => ({ id: c.id, title: c.title, description: c.description }))
-          )
-          setTopicIcons(icons)
-        } catch {
-          // Icons are optional; fallback to generic placeholder
-        }
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load library')
     } finally {
@@ -83,7 +70,7 @@ export function Library() {
         />
 
         {loading && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <CourseCardSkeleton key={i} />
             ))}
@@ -91,7 +78,7 @@ export function Library() {
         )}
 
         {error && (
-          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card px-6 py-6">
+          <div className="flex flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 sm:px-6">
             <div className="flex items-center gap-3">
               <ErrorIcon />
               <p className="text-body text-foreground">{error}</p>
@@ -122,13 +109,12 @@ export function Library() {
 
         {!loading && !error && courses.length > 0 && (
           <ActiveVideoProvider>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
               {courses.map((course) => (
                 <CourseCard
                   key={course.id}
                   course={course}
                   to={`/course/${course.id}`}
-                  topicEmoji={topicIcons[course.id]}
                 />
               ))}
             </div>

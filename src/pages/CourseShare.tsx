@@ -106,7 +106,7 @@ export function CourseShare() {
           <video
             src={course.intro_video_url}
             controls
-            className="max-w-2xl rounded-lg border border-border bg-card"
+            className="w-full max-w-2xl rounded-lg border border-border bg-card"
           />
         </div>
       )}

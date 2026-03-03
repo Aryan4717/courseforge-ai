@@ -4,9 +4,9 @@ import { PageContainer } from '@/components/layout/PageContainer'
 
 export function Layout() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
       <Header />
-      <main className="flex-1">
+      <main className="min-w-0 flex-1 overflow-x-hidden">
         <PageContainer>
           <Outlet />
         </PageContainer>

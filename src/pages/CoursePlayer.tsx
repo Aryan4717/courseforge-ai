@@ -159,7 +159,7 @@ export function CoursePlayer() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 sm:gap-6">
       <SectionHeader
         title={course.title}
         description={course.description || 'No description available'}
@@ -190,12 +190,12 @@ export function CoursePlayer() {
             <video
               src={course.intro_video_url}
               controls
-              className="rounded-lg border border-border bg-card max-w-2xl"
+              className="w-full max-w-2xl rounded-lg border border-border bg-card"
             />
           </div>
         )}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
-        <aside className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[240px_1fr]">
+        <aside className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
           <nav
             className="flex-1 overflow-y-auto p-4"
             aria-label="Course sections and lessons"
@@ -228,7 +228,7 @@ export function CoursePlayer() {
             </ul>
           </nav>
         </aside>
-        <main className="flex min-h-0 flex-col gap-4">
+        <main className="flex min-h-0 min-w-0 flex-col gap-4">
           {loadingLesson && (
             <div className="text-body-sm text-muted-foreground">
               Loading lesson...
@@ -246,9 +246,9 @@ export function CoursePlayer() {
                   {lesson.name}
                 </h2>
               </div>
-              <div className="min-h-0 flex-1 rounded-lg border border-border bg-card overflow-hidden">
+              <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
                 {lesson.type === 'text' && (
-                  <div className="prose max-w-none p-6">
+                  <div className="prose max-w-none overflow-x-auto break-words p-4 sm:p-6">
                     <ReactMarkdown>{lesson.content ?? ''}</ReactMarkdown>
                   </div>
                 )}
@@ -266,7 +266,7 @@ export function CoursePlayer() {
                     key={lesson.id}
                     src={lesson.url}
                     title={lesson.name}
-                    className="w-full h-[600px]"
+                    className="h-[50vh] w-full min-w-0 sm:h-[600px]"
                   />
                 )}
                 {lesson.type === 'audio' && lesson.url && (
