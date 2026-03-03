@@ -139,6 +139,7 @@ export async function processZipWithAI(
         name: fileName,
         type: getTypeFromFileName(fileName),
         url,
+        content: null,
       })
     }
   }
