@@ -262,12 +262,17 @@ export function CoursePlayer() {
                   />
                 )}
                 {(lesson.type === 'document' || lesson.type === 'pdf') && lesson.url && (
-                  <iframe
-                    key={lesson.id}
-                    src={lesson.url}
-                    title={lesson.name}
-                    className="w-full h-[600px]"
-                  />
+                  <div className="flex flex-col items-center justify-center gap-4 p-8">
+                    <p className="text-body-sm text-muted-foreground">{lesson.name}</p>
+                    <a
+                      href={lesson.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-body text-primary underline"
+                    >
+                      Open PDF
+                    </a>
+                  </div>
                 )}
                 {lesson.type === 'audio' && lesson.url && (
                   <div className="flex flex-col items-center justify-center gap-4 p-8">
