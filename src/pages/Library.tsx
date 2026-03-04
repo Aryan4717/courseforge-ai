@@ -8,7 +8,6 @@ import { CourseCardSkeleton } from '@/components/dashboard/CourseCardSkeleton'
 import { ActiveVideoProvider } from '@/components/dashboard/CourseCard'
 import { useAuthStore } from '@/store/authStore'
 import { getPurchasesWithCourses } from '@/services/courses'
-import { getCourseTopicIcons } from '@/services/createCourseApi'
 import type { Course } from '@/lib/database.types'
 
 function ErrorIcon() {
@@ -36,7 +35,6 @@ function ErrorIcon() {
 export function Library() {
   const user = useAuthStore((s) => s.user)
   const [courses, setCourses] = useState<Course[]>([])
-  const [topicIcons, setTopicIcons] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,17 +45,6 @@ export function Library() {
     try {
       const data = await getPurchasesWithCourses(user.id)
       setCourses(data)
-      const needIcons = data.filter((c) => !c.thumbnail_url)
-      if (needIcons.length > 0) {
-        try {
-          const icons = await getCourseTopicIcons(
-            needIcons.map((c) => ({ id: c.id, title: c.title, description: c.description }))
-          )
-          setTopicIcons(icons)
-        } catch {
-          // Icons are optional; fallback to generic placeholder
-        }
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load library')
     } finally {
@@ -128,7 +115,6 @@ export function Library() {
                   key={course.id}
                   course={course}
                   to={`/course/${course.id}`}
-                  topicEmoji={topicIcons[course.id]}
                 />
               ))}
             </div>

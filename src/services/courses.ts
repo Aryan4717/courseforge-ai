@@ -11,6 +11,23 @@ import type {
 
 const COURSE_ASSETS_BUCKET = 'course-assets'
 
+const EXTENSION_TO_MIME: Record<string, string> = {
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  m4a: 'audio/mp4',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+}
+
 export async function createCourse(data: CourseInsert): Promise<Course | null> {
   const { data: course, error } = await supabase
     .from('courses')
@@ -183,9 +200,11 @@ export async function uploadAssetFile(
   blob: Blob
 ): Promise<string> {
   const path = `${courseId}/${sectionId}/${fileName}`
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? ''
+  const contentType = EXTENSION_TO_MIME[ext]
   const { error } = await supabase.storage
     .from(COURSE_ASSETS_BUCKET)
-    .upload(path, blob, { upsert: true })
+    .upload(path, blob, { upsert: true, contentType })
 
   if (error) {
     console.error('uploadAssetFile error:', error)
