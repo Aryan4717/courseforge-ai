@@ -63,6 +63,22 @@ export async function ingestZip(file: File): Promise<{
   return res.json()
 }
 
+export async function getCourseTopicIcons(
+  courses: Array<{ id: string; title: string; description?: string | null }>
+): Promise<Record<string, string>> {
+  if (courses.length === 0) return {}
+  const res = await fetch(`${API_BASE_URL}/get-course-topic-icons`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ courses }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error(err.error ?? 'getCourseTopicIcons failed')
+  }
+  return res.json()
+}
+
 export async function generateMetadata(
   fileNames: string[]
 ): Promise<{ title: string; description: string }> {
