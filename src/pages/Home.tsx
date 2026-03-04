@@ -8,7 +8,6 @@ import { CourseCard } from '@/components/dashboard/CourseCard'
 import { CourseCardSkeleton } from '@/components/dashboard/CourseCardSkeleton'
 import { ActiveVideoProvider } from '@/components/dashboard/CourseCard'
 import { getCourses } from '@/services/courses'
-import { getCourseTopicIcons } from '@/services/createCourseApi'
 import type { Course } from '@/lib/database.types'
 
 function ErrorIcon() {
@@ -35,7 +34,6 @@ function ErrorIcon() {
 
 export function Home() {
   const [courses, setCourses] = useState<Course[]>([])
-  const [topicIcons, setTopicIcons] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,17 +43,6 @@ export function Home() {
     try {
       const data = await getCourses()
       setCourses(data)
-      const needIcons = data.filter((c) => !c.thumbnail_url)
-      if (needIcons.length > 0) {
-        try {
-          const icons = await getCourseTopicIcons(
-            needIcons.map((c) => ({ id: c.id, title: c.title, description: c.description }))
-          )
-          setTopicIcons(icons)
-        } catch {
-          // Icons are optional; fallback to generic placeholder
-        }
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load courses')
     } finally {
@@ -118,7 +105,6 @@ export function Home() {
                   key={course.id}
                   course={course}
                   to={`/courses/${course.id}`}
-                  topicEmoji={topicIcons[course.id]}
                 />
               ))}
             </div>

@@ -44,8 +44,6 @@ export function ActiveVideoProvider({ children }: { children: React.ReactNode })
 type CourseCardProps = {
   course: CourseCardCourse
   to: string
-  /** AI-generated emoji for courses without thumbnail; from getCourseTopicIcons */
-  topicEmoji?: string | null
 }
 
 function SpinnerIcon() {
@@ -68,7 +66,7 @@ function SpinnerIcon() {
   )
 }
 
-export function CourseCard({ course, to, topicEmoji }: CourseCardProps) {
+export function CourseCard({ course, to }: CourseCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [videoError, setVideoError] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -136,29 +134,23 @@ export function CourseCard({ course, to, topicEmoji }: CourseCardProps) {
               className="flex h-full w-full items-center justify-center bg-muted"
               aria-hidden
             >
-              {topicEmoji ? (
-                <span className="text-4xl" role="img" aria-hidden>
-                  {topicEmoji}
-                </span>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-muted-foreground/50"
-                  aria-hidden
-                >
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                  <path d="M8 7h8M8 11h8" />
-                </svg>
-              )}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-muted-foreground/50"
+                aria-hidden
+              >
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                <path d="M8 7h8M8 11h8" />
+              </svg>
             </div>
           )}
           {showVideo && course.intro_video_url && (
