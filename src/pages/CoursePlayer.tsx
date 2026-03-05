@@ -14,6 +14,16 @@ import type { CourseAsset } from '@/lib/database.types'
 
 type SectionWithAssets = { section: CourseSection; assets: CourseAsset[] }
 
+function isSystemFile(name: string): boolean {
+  const base = name.split('/').pop() ?? name
+  return (
+    base === '.DS_Store' ||
+    base === '._DS_Store' ||
+    base.startsWith('._') ||
+    base === '__MACOSX'
+  )
+}
+
 export function CoursePlayer() {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -61,7 +71,12 @@ export function CoursePlayer() {
       })
       .then((result) => {
         if (cancelled || !result) return
-        setSectionsWithAssets(result)
+        setSectionsWithAssets(
+          result.map(({ section, assets }) => ({
+            section,
+            assets: assets.filter((a) => !isSystemFile(a.name)),
+          }))
+        )
       })
       .catch(() => {
         if (!cancelled) setNotFound(true)
