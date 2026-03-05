@@ -58,8 +58,21 @@ type ZipStructure = {
   assets: ParsedAsset[]
 }
 
+function isSystemFile(path: string): boolean {
+  const segs = path.split('/').filter(Boolean)
+  return segs.some(
+    (seg) =>
+      seg === '.DS_Store' ||
+      seg === '._DS_Store' ||
+      seg.startsWith('._') ||
+      seg === '__MACOSX'
+  )
+}
+
 function getStructure(zip: JSZip): ZipStructure {
-  const paths = Object.keys(zip.files).filter((p) => !p.endsWith('/'))
+  const paths = Object.keys(zip.files).filter(
+    (p) => !p.endsWith('/') && !isSystemFile(p)
+  )
   if (paths.length === 0) {
     return { courseTitle: 'Untitled Course', sections: [], assets: [] }
   }
