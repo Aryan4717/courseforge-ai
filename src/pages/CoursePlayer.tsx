@@ -37,6 +37,8 @@ export function CoursePlayer() {
   const [loading, setLoading] = useState(true)
   const [loadingLesson, setLoadingLesson] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  const [txtContent, setTxtContent] = useState<string | null>(null)
+  const [txtLoading, setTxtLoading] = useState(false)
 
   useEffect(() => {
     if (!id) {
@@ -139,6 +141,32 @@ export function CoursePlayer() {
   const selectLesson = (assetId: string) => {
     setSearchParams({ lesson: assetId })
   }
+
+  const isTxtFile = (l: CourseAsset | null) =>
+    l?.url && l.name.toLowerCase().endsWith('.txt')
+
+  useEffect(() => {
+    if (!lesson || !isTxtFile(lesson)) {
+      setTxtContent(null)
+      return
+    }
+    let cancelled = false
+    setTxtLoading(true)
+    fetch(lesson.url!)
+      .then((r) => r.text())
+      .then((text) => {
+        if (!cancelled) setTxtContent(text)
+      })
+      .catch(() => {
+        if (!cancelled) setTxtContent(null)
+      })
+      .finally(() => {
+        if (!cancelled) setTxtLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [lesson?.id, lesson?.url])
 
   if (notFound) {
     return (
@@ -277,16 +305,24 @@ export function CoursePlayer() {
                   />
                 )}
                 {(lesson.type === 'document' || lesson.type === 'pdf') && lesson.url && (
-                  <div className="flex flex-col items-center justify-center gap-4 p-8">
-                    <p className="text-body-sm text-muted-foreground">{lesson.name}</p>
-                    <a
-                      href={lesson.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-body text-primary underline"
-                    >
-                      Open PDF
-                    </a>
+                  <div className="flex h-full min-h-[500px] flex-col">
+                    <iframe
+                      key={lesson.id}
+                      src={lesson.url}
+                      title={lesson.name}
+                      className="h-full min-h-[500px] w-full flex-1 border-0"
+                    />
+                    <div className="flex items-center justify-between border-t border-border bg-muted/50 px-4 py-2">
+                      <span className="text-body-sm text-muted-foreground">{lesson.name}</span>
+                      <a
+                        href={lesson.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-body-sm text-primary underline"
+                      >
+                        Open in new tab
+                      </a>
+                    </div>
                   </div>
                 )}
                 {lesson.type === 'audio' && lesson.url && (
@@ -302,16 +338,44 @@ export function CoursePlayer() {
                     />
                   </div>
                 )}
-                {(lesson.type === 'image' || lesson.type === 'file') && lesson.url && (
+                {lesson.type === 'image' && lesson.url && (
                   <div className="flex flex-col items-center justify-center gap-4 p-8">
-                    {lesson.type === 'image' ? (
-                      <img
-                        key={lesson.id}
-                        src={lesson.url}
-                        alt={lesson.name}
-                        className="max-h-[70vh] w-auto max-w-full object-contain"
-                      />
-                    ) : (
+                    <img
+                      key={lesson.id}
+                      src={lesson.url}
+                      alt={lesson.name}
+                      className="max-h-[70vh] w-auto max-w-full object-contain"
+                    />
+                  </div>
+                )}
+                {lesson.type === 'file' && lesson.url && (
+                  isTxtFile(lesson) ? (
+                    <div className="flex flex-col h-full min-h-[300px]">
+                      {txtLoading ? (
+                        <div className="flex flex-1 items-center justify-center p-8 text-body-sm text-muted-foreground">
+                          Loading…
+                        </div>
+                      ) : (
+                        <>
+                          <pre className="flex-1 overflow-auto whitespace-pre-wrap break-words p-6 font-sans text-body text-foreground">
+                            {txtContent ?? 'Unable to load content'}
+                          </pre>
+                          <div className="flex items-center justify-between border-t border-border bg-muted/50 px-4 py-2">
+                            <span className="text-body-sm text-muted-foreground">{lesson.name}</span>
+                            <a
+                              href={lesson.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-body-sm text-primary underline"
+                            >
+                              Open in new tab
+                            </a>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-4 p-8">
                       <a
                         href={lesson.url}
                         target="_blank"
@@ -320,8 +384,8 @@ export function CoursePlayer() {
                       >
                         Open {lesson.name}
                       </a>
-                    )}
-                  </div>
+                    </div>
+                  )
                 )}
                 {!['text', 'video', 'document', 'pdf', 'audio', 'image', 'file'].includes(lesson.type) && (
                   <div className="p-6 text-body-sm text-muted-foreground">
