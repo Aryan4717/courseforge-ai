@@ -83,7 +83,7 @@ export async function getPurchasesWithCourses(
 ): Promise<Course[]> {
   const { data, error } = await supabase
     .from('purchases')
-    .select('*, courses(*)')
+    .select('*, courses!fk_purchases_course(*)')
     .eq('user_id', userId)
 
   if (error) {

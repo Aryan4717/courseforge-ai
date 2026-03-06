@@ -19,8 +19,8 @@ function App() {
         <Route path="signup" element={<Signup />} />
         <Route path="courses/:id" element={<CourseShare />} />
         <Route path="course/:id" element={<CoursePlayer />} />
+        <Route index element={<Home />} />
         <Route element={<ProtectedRoute />}>
-          <Route index element={<Home />} />
           <Route path="library" element={<Library />} />
           <Route path="create" element={<CreateCourse />} />
           <Route path="create/ai" element={<CreateWithAI />} />
